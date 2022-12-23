@@ -1,0 +1,16 @@
+all:
+  children: 
+    loadbalancer:
+      hosts:
+        192.168.64.2:
+        192.168.64.3:
+  vars:
+    keepalived_vip_ip: 192.168.64.5
+    upstreams:
+      - upstream_name: http
+        frontend_port: 80
+        backend_port: 8080
+      - upstream_name: https
+        frontend_port: 443
+        backend_port: 8443
+

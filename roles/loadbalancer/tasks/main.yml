@@ -1,0 +1,41 @@
+---
+# tasks file for keepalived
+- set_fact:
+    keepalived_pass: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters') }}"
+  run_once: true
+  delegate_to: loadbalancer[0]
+
+- debug:
+    msg: "{{ keepalived_pass }}"
+
+- name: Template keepalived configuration file
+  template: 
+    src: keepalived.conf.j2
+    dest: /etc/keepalived/keepalived.conf
+    force: yes
+
+- name: Template haproxy configuration file
+  template: 
+    src: haproxy.conf.j2
+    dest: /etc/haproxy/haproxy.cfg
+    force: yes
+
+- name: Enable service keepalived, and not touch the state
+  ansible.builtin.service:
+    name: keepalived
+    enabled: yes
+
+- name: Enable service haproxy, and not touch the state
+  ansible.builtin.service:
+    name: haproxy
+    enabled: yes
+
+- name: Start service keepalived, if not started
+  ansible.builtin.service:
+    name: keepalived
+    state: restarted
+
+- name: Start service haproxy, if not started
+  ansible.builtin.service:
+    name: haproxy
+    state: restarted

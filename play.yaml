@@ -1,0 +1,5 @@
+---
+- hosts: loadbalancer
+  roles:
+    - { role: prepare, become: yes }
+    - { role: loadbalancer, become: yes}

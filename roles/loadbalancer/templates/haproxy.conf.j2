@@ -1,0 +1,52 @@
+# Global settings
+#---------------------------------------------------------------------
+global
+    maxconn     20000
+    log         /dev/log local0 info
+    chroot      /var/lib/haproxy
+    pidfile     /var/run/haproxy.pid
+    user        haproxy
+    group       haproxy
+    daemon
+
+    # turn on stats unix socket
+    stats socket /var/lib/haproxy/stats
+
+#---------------------------------------------------------------------
+# common defaults that all the 'listen' and 'backend' sections will
+# use if not designated in their block
+#---------------------------------------------------------------------
+defaults
+    mode                    tcp
+    log                     global
+    option                  dontlognull
+#    option http-server-close
+#    option forwardfor       except 127.0.0.0/8
+    option                  redispatch
+    retries                 3
+    timeout http-request    10s
+    timeout queue           1m
+    timeout connect         10s
+    timeout client          86400s
+    timeout server          86400s
+    timeout tunnel          86400s
+    timeout http-keep-alive 10s
+    timeout check           10s
+    maxconn                 20000
+
+{% for item in upstreams %}
+frontend {{ item.upstream_name }}
+    bind *:{{ item.frontend_port }}
+    mode tcp
+    option tcplog
+    default_backend {{ item.upstream_name }}
+
+backend {{ item.upstream_name }}
+    balance roundrobin
+    mode tcp
+    default-server inter 10s downinter 5s rise 2 fall 2 slowstart 60s maxconn 5000 maxqueue 5000 weight 100
+{% for host in groups['loadbalancer'] %}
+    server      {{ item.upstream_name }}-{{ loop.index }} {{ host }}:{{ item.backend_port }} check
+{% endfor %}
+
+{% endfor %}

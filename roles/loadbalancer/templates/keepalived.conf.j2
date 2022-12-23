@@ -1,0 +1,36 @@
+vrrp_script chk_haproxy {
+    script "/usr/bin/pgrep haproxy -o"
+    interval 2
+}
+
+vrrp_instance haproxy {
+{% if inventory_hostname == groups['loadbalancer'][0] %}
+        state MASTER
+        virtual_router_id 50
+        priority 255
+{% else %}
+        state BACKUP
+        virtual_router_id 50
+        priority {{ hostvars[inventory_hostname]['ansible_facts']['default_ipv4']['address'].split('.')[-1] }}
+{% endif %}
+        interface {{ hostvars[inventory_hostname]['ansible_facts']['default_ipv4']['interface'] }} 
+        unicast_src_ip {{ hostvars[inventory_hostname]['ansible_facts']['default_ipv4']['address'] }}
+        unicast_peer {
+{% for item in groups['loadbalancer'] %}
+{% if hostvars[inventory_hostname]['ansible_default_ipv4']['address'] != hostvars[item]['ansible_default_ipv4']['address'] %}
+                {{ hostvars[item]['ansible_default_ipv4']['address'] }}
+{% endif %}
+{% endfor %}
+        }
+        authentication {
+                auth_type PASS
+                auth_pass {{ keepalived_pass }}
+        }
+        virtual_ipaddress {
+                {{ keepalived_vip_ip }}/26 dev {{ hostvars[inventory_hostname]['ansible_facts']['default_ipv4']['interface'] }}
+        }
+        track_script {
+                chk_haproxy
+        }
+
+}
