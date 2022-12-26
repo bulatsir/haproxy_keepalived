@@ -3,3 +3,4 @@
   roles:
     - { role: prepare, become: yes }
     - { role: loadbalancer, become: yes}
+    - { role: minio, become: yes }

@@ -1,6 +1,11 @@
-vrrp_script chk_haproxy {
+vrrp_script check_haproxy {
     script "/usr/bin/pgrep haproxy -o"
     interval 2
+}
+
+vrrp_script check_frontend_port {
+    script "python3 /etc/keepalived/scripts/check.py{% for item in upstreams %} {{ item.frontend_port }} {% endfor %}"
+    interval 10
 }
 
 vrrp_instance haproxy {
@@ -30,7 +35,8 @@ vrrp_instance haproxy {
                 {{ keepalived_vip_ip }}/26 dev {{ hostvars[inventory_hostname]['ansible_facts']['default_ipv4']['interface'] }}
         }
         track_script {
-                chk_haproxy
+                check_haproxy
+                сheck_frontend_port
         }
 
 }

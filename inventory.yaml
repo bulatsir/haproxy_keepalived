@@ -2,8 +2,7 @@ all:
   children: 
     loadbalancer:
       hosts:
-        192.168.64.2:
-        192.168.64.3:
+        node0[1:2]:
   vars:
     keepalived_vip_ip: 192.168.64.5
     upstreams:
@@ -13,4 +12,7 @@ all:
       - upstream_name: https
         frontend_port: 443
         backend_port: 8443
-
+    minio_url: minio.dev.akbars.ru
+    disk_path: /mnt/minio
+    disk_numbers: 2
+    
