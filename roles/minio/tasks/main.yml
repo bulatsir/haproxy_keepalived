@@ -1,0 +1,86 @@
+---
+
+- name: Create group minio-user
+  group:
+    name: "minio-user"
+
+- name: Add the user 'minio', appending the group 'minio-user'
+  ansible.builtin.user:
+    name: minio-user
+    groups: minio-user
+    append: yes    
+
+- name: Copy minio deb file with owner and permissions
+  ansible.builtin.copy:
+    src: ./files/minio.deb
+    dest: /tmp/minio.deb
+    mode: '0755'
+
+- name: Install deb
+  apt:
+    deb: /tmp/minio.deb    
+
+- name: Create a directory if it does not exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: minio-user
+    group: minio-user
+  loop:
+    - /home/minio-user/.minio/certs/CAs
+
+- name: Template minio configuration file
+  template: 
+    src: minio.j2
+    dest: /etc/default/minio
+    force: yes
+
+- name: Template shell script
+  template: 
+    src: generate_ssl.sh.j2
+    dest: /home/minio-user/.minio/certs/generate_ssl.sh
+    mode: '0777'
+    force: yes
+
+- name: Execute the command in remote shell
+  ansible.builtin.shell: /home/minio-user/.minio/certs/generate_ssl.sh
+  when: inventory_hostname == "{{ groups['loadbalancer'][0] }}"
+
+- name: check cert
+  stat:
+    path: /home/minio-user/.minio/certs/public.crt
+  register: certificate
+
+- name: Get certificates and keys
+  ansible.builtin.slurp:
+    src: /home/minio-user/.minio/certs/{{ item }}
+  register: cert
+  run_once: true
+  delegate_to: "{{ groups['loadbalancer'][0] }}"
+  loop:
+    - public.crt
+    - private.key
+  when: not certificate.stat.exists
+
+- name: Copy certificates to minio nodes
+  copy:
+    dest: "/home/minio-user/.minio/certs/{{ item.item }}"
+    content: "{{ item.content | b64decode}}"
+    owner: minio-user
+    group: minio-user
+    mode: '0755'
+  with_items: "{{ cert.results }}"
+  when: not certificate.stat.exists
+
+- name: Copy certificates files on the remote machine 
+  ansible.builtin.copy:
+    src: /home/minio-user/.minio/certs/public.crt
+    dest: /home/minio-user/.minio/certs/CAs/public.crt
+    remote_src: yes
+
+
+- name: Start service minio, if not started
+  ansible.builtin.service:
+    name: minio
+    state: restarted

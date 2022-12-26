@@ -1,0 +1,1 @@
+openssl req -nodes -x509 -sha256 -newkey rsa:4096 -keyout /home/minio-user/private.key -out /home/minio-user/public.crt -days 356 -subj "/CN={{ minio_url }}" -addext "subjectAltName = DNS:{{ minio_url }}{% for item in groups['loadbalancer'] %},DNS:{{ item }}{% endfor %}"
