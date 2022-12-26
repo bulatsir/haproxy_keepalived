@@ -30,6 +30,11 @@
   loop:
     - /home/minio-user/.minio/certs/CAs
 
+- set_fact:
+    minioadmin_pass: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters') }}"
+  run_once: true
+  delegate_to: loadbalancer[0]
+
 - name: Template minio configuration file
   template: 
     src: minio.j2
@@ -79,8 +84,33 @@
     dest: /home/minio-user/.minio/certs/CAs/public.crt
     remote_src: yes
 
+- name: Install lvm2 dependency
+  package:
+    name: lvm2
+    state: present
+  register: install_result
+  until: install_result is not failed
+  retries: 3
+  delay: 10
+  when: lvm_list | length > 0
+
+- name: Create logical volumes
+  include_tasks: lvm.yml
+  with_items: "{{ lvm_list }}"
+
+- name: Change file ownership, group and permissions
+  ansible.builtin.file:
+    path: "{{ item.mount_point }}"
+    owner: minio-user
+    group: minio-user
+    mode: '0755'
+  loop: "{{ lvm_list }}"
 
 - name: Start service minio, if not started
   ansible.builtin.service:
     name: minio
     state: restarted
+
+- debug:
+    msg: "minioadmin password: {{ minioadmin_pass }}"
+  run_once: true

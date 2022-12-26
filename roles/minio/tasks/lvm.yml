@@ -1,0 +1,42 @@
+---
+
+- name: Create the "{{ item.vg_name }}" Volume group.
+  lvg:
+    pvs: "{{ item.devices }}"
+    vg: "{{ item.vg_name }}"
+    pv_options: '-Z y'
+    force: no
+    state: present
+
+- name: Create the "{{ item.lv_name }}" Logical Volume.
+  lvol:
+    vg: "{{ item.vg_name }}"
+    lv: "{{ item.lv_name }}"
+    size: "{{ item.lv_size }}"
+    active: yes
+    force: no
+    state: present
+
+- block:
+  - name: Create a "{{ item.fs }}" filesystem on lv "/dev/mapper/{{ item.vg_name}}-{{ item.lv_name}}".
+    filesystem:
+      fstype: "{{ item.fs }}"
+      dev: "/dev/mapper/{{ item.vg_name }}-{{ item.lv_name }}"
+      force: no
+
+  - block:
+    - name: Create a directory to mount the filesystem.
+      file:
+        path: "{{ item.mount_point }}"
+        state: directory
+        mode: '0755'
+
+    - name: Mount the created "{{ item.fs }}" filesystem.
+      mount:
+        path: "{{ item.mount_point }}"
+        src: "/dev/mapper/{{ item.vg_name}}-{{ item.lv_name}}"
+        fstype: "{{ item.fs }}"
+        opts: rw,nosuid
+        state: mounted
+    when: item.mount_point is defined and item.mount_point | length > 0
+  when: item.fs is defined and item.fs | length > 0

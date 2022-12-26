@@ -7,7 +7,7 @@
 # The command includes the port that each MinIO server listens on
 # (default 9000)
 
-MINIO_VOLUMES="https://{{ groups['loadbalancer'][0][:-1] }}{1...{{ groups['loadbalancer'] | length }}}:9000{{ disk_path }}{% if disk_numbers is defined %}{1...{{ disk_numbers }}}{% endif %}/minio"
+MINIO_VOLUMES="https://{{ groups['loadbalancer'][0][:-1] }}{1...{{ groups['loadbalancer'] | length }}}:9000{{ disk_path }}{% if disk_numbers > 1 %}{1...{{ disk_numbers }}}{% endif %}/minio"
 
 MINIO_OPTS="--console-address :9001"
 
@@ -24,7 +24,7 @@ MINIO_ROOT_USER=minioadmin
 # Use a long, random, unique string that meets your organizations
 # requirements for passwords.
 
-MINIO_ROOT_PASSWORD=minioadmin
+MINIO_ROOT_PASSWORD={{ minioadmin_pass }}
 
 #MINIO_STORAGE_CLASS_STANDARD="EC:1"
 #MINIO_STORAGE_CLASS_RRS="EC:1"
@@ -33,4 +33,4 @@ MINIO_ROOT_PASSWORD=minioadmin
 # This value *must* match across all MinIO servers. If you do
 # not have a load balancer, set this value to to any *one* of the
 # MinIO hosts in the deployment as a temporary measure.
-MINIO_SERVER_URL="{{ minio_url}}:9900"
+MINIO_SERVER_URL="https://{{ minio_url}}:9900"

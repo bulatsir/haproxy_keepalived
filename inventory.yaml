@@ -6,13 +6,25 @@ all:
   vars:
     keepalived_vip_ip: 192.168.64.5
     upstreams:
-      - upstream_name: http
-        frontend_port: 80
-        backend_port: 8080
-      - upstream_name: https
-        frontend_port: 443
-        backend_port: 8443
+      - upstream_name: minio
+        frontend_port: 9900
+        backend_port: 9000
+      - upstream_name: minio-console
+        frontend_port: 9001
+        backend_port: 9001
     minio_url: minio.dev.akbars.ru
-    disk_path: /mnt/minio
+    disk_path: /mnt/disk
     disk_numbers: 2
-    
+    lvm_list:
+      - devices: /dev/vdb
+        vg_name: minio
+        lv_name: disk1
+        lv_size: 5g
+        fs: xfs
+        mount_point: /mnt/disk1
+      - devices: /dev/vdb
+        vg_name: minio
+        lv_name: disk2
+        lv_size: 4g
+        fs: xfs
+        mount_point: /mnt/disk2

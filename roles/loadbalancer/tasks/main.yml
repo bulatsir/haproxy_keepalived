@@ -51,4 +51,4 @@
 - name: Start service haproxy, if not started
   ansible.builtin.service:
     name: haproxy
-    state: started
+    state: restarted
